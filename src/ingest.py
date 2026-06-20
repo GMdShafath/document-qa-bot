@@ -1,7 +1,6 @@
 import os
 import sys
 import json
-import faiss
 import numpy as np
 from tqdm import tqdm
 
@@ -97,22 +96,15 @@ def run_ingestion(data_dir=DATA_DIR, db_path=DB_DIR):
         return 0
     chunks = chunk_pages(pages)
     print(f"Created {len(chunks)} chunks")
-
     os.makedirs(db_path, exist_ok=True)
     embeddings = []
     for chunk in tqdm(chunks, desc="Embedding"):
         emb = get_embedding(chunk["text"])
         embeddings.append(emb)
-
     emb_array = np.array(embeddings).astype("float32")
-    index = faiss.IndexFlatIP(emb_array.shape[1])
-    faiss.normalize_L2(emb_array)
-    index.add(emb_array)
-
-    faiss.write_index(index, os.path.join(db_path, "index.faiss"))
+    np.save(os.path.join(db_path, "embeddings.npy"), emb_array)
     with open(os.path.join(db_path, "chunks.json"), "w") as f:
         json.dump(chunks, f)
-
     print(f"Indexed {len(chunks)} chunks!")
     return len(chunks)
 
